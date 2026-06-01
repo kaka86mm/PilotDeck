@@ -55,6 +55,13 @@ adapters:
     appSecret: ""
     # connectionMode: stream
     # domainName: feishu
+  qq:
+    enabled: false
+    appId: ""
+    clientSecret: ""
+  telegram:
+    enabled: false
+    token: ""
 router:
   enabled: true
   scenarios:
@@ -190,6 +197,13 @@ adapters:
     appSecret: ""
     # connectionMode: stream
     # domainName: feishu
+  qq:
+    enabled: false
+    appId: ""
+    clientSecret: ""
+  telegram:
+    enabled: false
+    token: ""
 `;
 
 const PATCH_SECTIONS = [
