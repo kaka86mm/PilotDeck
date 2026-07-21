@@ -119,7 +119,9 @@ if not exist "%RESOURCES%\bun-bin\bun.exe" (
     move bun-windows-x64\bun.exe bun.exe
     rd /s /q bun-windows-x64
     del bun-win-x64.zip
-    echo OK: & bun.exe --version
+    echo OK: bun downloaded
+    REM Note: do not chain `bun.exe --version` with & — bun may return non-zero
+    REM on first run in CI (exit 255), which falsely fails the build.
 ) else (
     echo [4] Bun binary already present, skipping download
 )
@@ -196,7 +198,7 @@ if not exist "%RESOURCES%\python-bin\python.exe" (
         echo ERROR: office python deps install failed
         exit /b 1
     )
-    echo OK: & python.exe --version
+    echo OK: python downloaded
 ) else (
     echo [4c] Python embeddable already present, skipping
 )
