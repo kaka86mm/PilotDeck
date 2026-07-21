@@ -64,6 +64,43 @@ function bundledBinary(binDir: string, name: string): string {
   return path.join(binDir, name);
 }
 
+/**
+ * Build the PATH env value for the spawned server process.
+ *
+ * Bundled Node + Bun are always prepended (existing behavior). On Windows,
+ * when the all-in-one build is present, we also prepend the bundled office
+ * runtime directories so that skills invoking `bash`, `python`, `soffice`,
+ * and `pdftoppm` resolve to the self-contained copies under resources/
+ * instead of requiring the user to install Git Bash / Python / LibreOffice /
+ * poppler system-wide.
+ *
+ * Each directory is only added when it actually exists on disk, so dev mode
+ * (no resources/) and non-Windows platforms are unaffected.
+ */
+function buildBundledPath(nodeBin: string, bunBin: string): string {
+  const parts: string[] = [path.dirname(nodeBin), path.dirname(bunBin)];
+  if (process.platform === "win32") {
+    // nodeBin is <resources>/node-bin/node.exe → resources = dirname twice
+    const resources = path.dirname(path.dirname(nodeBin));
+    if (fsSync.existsSync(resources)) {
+      // Git Bash: provides bash.exe + coreutils (cp/rm/tar/...) for skill .sh scripts
+      const gitUsrBin = path.join(resources, "git-bin", "usr", "bin");
+      if (fsSync.existsSync(path.join(gitUsrBin, "bash.exe"))) parts.push(gitUsrBin);
+      // Python embeddable: provides python.exe for docx/pdf skill scripts
+      const pythonBin = path.join(resources, "python-bin");
+      if (fsSync.existsSync(path.join(pythonBin, "python.exe"))) parts.push(pythonBin);
+      // poppler: provides pdftoppm.exe for PDF page rendering
+      const popplerBin = path.join(resources, "poppler-bin", "Library", "bin");
+      if (fsSync.existsSync(path.join(popplerBin, "pdftoppm.exe"))) parts.push(popplerBin);
+      // LibreOffice: provides soffice.exe for docx/pptx rendering
+      const loProgram = path.join(resources, "libreoffice-bin", "program");
+      if (fsSync.existsSync(path.join(loProgram, "soffice.exe"))) parts.push(loProgram);
+    }
+  }
+  parts.push(process.env.PATH ?? "");
+  return parts.filter(Boolean).join(path.delimiter);
+}
+
 function linkDirectory(link: string, target: string): void {
   if (fsSync.existsSync(link) || !fsSync.existsSync(target)) return;
   if (process.platform === "win32") {
@@ -872,9 +909,7 @@ export class ServerManager extends EventEmitter<ServerManagerEvents> {
       // Tell pilotdeckui where pilotdeck-main lives
       PILOTDECK_MAIN_DIR: pilotDeckMainDir,
       // Prepend bundled Node + Bun to PATH so any indirect lookups resolve our binaries
-      PATH: `${path.dirname(nodeBin)}${path.delimiter}${path.dirname(bunBin)}${path.delimiter}${
-        process.env.PATH ?? ""
-      }`,
+      PATH: buildBundledPath(nodeBin, bunBin),
       // Reasoning-friendly default. Anything already present (env passthrough
       // from launchctl, user shell, or buildRuntimeEnv() reading
       // agents.main.params.maxOutputTokens) wins via the spread above… except

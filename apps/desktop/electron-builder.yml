@@ -77,6 +77,22 @@ extraResources:
     to: pilotdeck-main-bundle.tar
   - from: resources/pilotdeck-memory-core-bundle.tar
     to: pilotdeck-memory-core-bundle.tar
+  # ── Bundled runtime dependencies (Windows all-in-one) ──
+  # These let office skills (docx/pptx/pdf/spreadsheets) run without the user
+  # installing Git Bash / Python / LibreOffice / poppler separately.
+  - from: resources/git-bin/
+    to: git-bin/
+  - from: resources/python-bin/
+    to: python-bin/
+  - from: resources/poppler-bin/
+    to: poppler-bin/
+  - from: resources/libreoffice-bin/
+    to: libreoffice-bin/
+  # Pre-configured acccode template (user copies to ~/.pilotdeck/pilotdeck.yaml
+  # and fills in their own key). Ships inside the installer for convenience.
+  - from: resources/pilotdeck-team-template.yaml
+    to: pilotdeck-team-template.yaml
+    filter: ["**/*"]
 
 files:
   - "dist/**/*"

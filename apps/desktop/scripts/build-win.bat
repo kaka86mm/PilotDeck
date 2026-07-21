@@ -28,15 +28,15 @@ echo  PilotDeck Windows Builder
 echo ========================================
 echo.
 
-REM --- Step 1: Git pull ---
+REM --- Step 1: Git pull (skip on CI / detached HEAD) ---
 echo [1] Pulling latest from GitHub...
 cd /d "%REPO_ROOT%"
 git pull origin main
 if errorlevel 1 (
-    echo ERROR: git pull failed
-    exit /b 1
+    echo WARNING: git pull failed ^(ok on CI / detached HEAD^), continuing
+) else (
+    echo OK
 )
-echo OK
 
 REM --- Step 2: Install dependencies ---
 if %SKIP_INSTALL%==0 (
@@ -116,6 +116,139 @@ if not exist "%RESOURCES%\bun-bin\bun.exe" (
     echo OK: & bun.exe --version
 ) else (
     echo [4] Bun binary already present, skipping download
+)
+
+REM --- Step 4b: Download Git for Windows (portable, provides bash.exe) ---
+if not exist "%RESOURCES%\git-bin\usr\bin\bash.exe" (
+    echo.
+    echo [4b] Downloading Git for Windows portable (bash)...
+    mkdir "%RESOURCES%\git-bin" 2>nul
+    cd /d "%RESOURCES%\git-bin"
+    curl -fsSL -o PortableGit.7z.exe https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.2/PortableGit-2.47.1.2-64-bit.7z.exe
+    if errorlevel 1 (
+        echo ERROR: Git portable download failed
+        exit /b 1
+    )
+    REM PortableGit self-extracting 7z: run with -y -o<dir> to extract silently
+    PortableGit.7z.exe -y -o"%RESOURCES%\git-bin"
+    if errorlevel 1 (
+        echo ERROR: Git portable extraction failed
+        exit /b 1
+    )
+    del PortableGit.7z.exe
+    if exist "%RESOURCES%\git-bin\usr\bin\bash.exe" (
+        echo OK: bash present
+    ) else (
+        echo ERROR: bash.exe not found after extraction
+        exit /b 1
+    )
+) else (
+    echo [4b] Git portable (bash) already present, skipping
+)
+
+REM --- Step 4c: Download Python embeddable + office skill deps ---
+if not exist "%RESOURCES%\python-bin\python.exe" (
+    echo.
+    echo [4c] Downloading Python 3.13 embeddable for Windows x64...
+    mkdir "%RESOURCES%\python-bin" 2>nul
+    cd /d "%RESOURCES%\python-bin"
+    curl -fsSL -o python-embed.zip https://www.python.org/ftp/python/3.13.1/python-3.13.1-embed-amd64.zip
+    if errorlevel 1 (
+        echo ERROR: Python embeddable download failed
+        exit /b 1
+   )
+    tar xf python-embed.zip
+    if errorlevel 1 (
+        echo ERROR: Python extraction failed
+        exit /b 1
+    )
+    del python-embed.zip
+    REM Enable pip in embeddable: uncomment "import site" in python313._pth
+    if exist python313._pth (
+        powershell -Command "(Get-Content python313._pth) -replace '^#import site', 'import site' | Set-Content python313._pth"
+    )
+    REM Install pip via get-pip.py
+    curl -fsSL -o get-pip.py https://bootstrap.pypa.io/get-pip.py
+    python.exe get-pip.py --quiet
+    if errorlevel 1 (
+        echo ERROR: pip bootstrap failed
+        exit /b 1
+    )
+    del get-pip.py
+    REM Install office skill dependencies into the embeddable
+    python.exe -m pip install --quiet ^
+        python-docx>=1.1.2 ^
+        "lxml>=5.2,<7" ^
+        openpyxl ^
+        python-pptx ^
+        pypdf ^
+        pdfplumber ^
+        reportlab ^
+        PyMuPDF ^
+        Pillow
+    if errorlevel 1 (
+        echo ERROR: office python deps install failed
+        exit /b 1
+    )
+    echo OK: & python.exe --version
+) else (
+    echo [4c] Python embeddable already present, skipping
+)
+
+REM --- Step 4d: Download poppler (pdftoppm for PDF rendering) ---
+if not exist "%RESOURCES%\poppler-bin\Library\bin\pdftoppm.exe" (
+    echo.
+    echo [4d] Downloading poppler for Windows...
+    mkdir "%RESOURCES%\poppler-bin" 2>nul
+    cd /d "%RESOURCES%"
+    curl -fsSL -o poppler.zip https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip
+    if errorlevel 1 (
+        echo ERROR: poppler download failed
+        exit /b 1
+    )
+    REM Archive extracts to poppler-24.08.0/Library/bin/...; extract into poppler-bin
+    cd /d "%RESOURCES%\poppler-bin"
+    tar xf "%RESOURCES%\poppler.zip" --strip-components=0
+    if errorlevel 1 (
+        echo ERROR: poppler extraction failed
+        exit /b 1
+    )
+    del "%RESOURCES%\poppler.zip"
+    if exist "Library\bin\pdftoppm.exe" (
+        echo OK: pdftoppm present
+    ) else (
+        echo WARNING: pdftoppm path differs, poppler may need adjustment
+    )
+) else (
+    echo [4d] poppler already present, skipping
+)
+
+REM --- Step 4e: Download LibreOffice (soffice for office rendering) ---
+if not exist "%RESOURCES%\libreoffice-bin\program\soffice.exe" (
+    echo.
+    echo [4e] Downloading LibreOffice for Windows x64...
+    mkdir "%RESOURCES%\libreoffice-bin" 2>nul
+    cd /d "%RESOURCES%"
+    REM Download the MSI, then extract with msiexec (administrative install) to avoid system install
+    curl -fsSL -o libreoffice.msi https://download.documentfoundation.org/libreoffice/stable/25.2.7/win/x86_64/LibreOffice_25.2.7_Win_x86-64.msi
+    if errorlevel 1 (
+        echo ERROR: LibreOffice MSI download failed
+        exit /b 1
+    )
+    REM Administrative install extracts files without registering the software
+    msiexec /a "%RESOURCES%\libreoffice.msi" /qb TARGETDIR="%RESOURCES%\libreoffice-bin"
+    if errorlevel 1 (
+        echo ERROR: LibreOffice extraction failed
+        exit /b 1
+    )
+    del "%RESOURCES%\libreoffice.msi"
+    if exist "%RESOURCES%\libreoffice-bin\program\soffice.exe" (
+        echo OK: soffice present
+    ) else (
+        echo WARNING: soffice.exe not at expected path, check extraction layout
+    )
+) else (
+    echo [4e] LibreOffice already present, skipping
 )
 
 REM --- Step 5: Build pilotdeckui ---
