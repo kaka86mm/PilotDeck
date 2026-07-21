@@ -120,8 +120,6 @@ if not exist "%RESOURCES%\bun-bin\bun.exe" (
     rd /s /q bun-windows-x64
     del bun-win-x64.zip
     echo OK: bun downloaded
-    REM Note: do not chain `bun.exe --version` with & — bun may return non-zero
-    REM on first run in CI (exit 255), which falsely fails the build.
 ) else (
     echo [4] Bun binary already present, skipping download
 )
