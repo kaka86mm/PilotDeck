@@ -216,12 +216,14 @@ if errorlevel 1 (
     echo ERROR: LibreOffice MSI download failed
     exit /b 1
 )
-msiexec /a "%RESOURCES%\libreoffice.msi" /qb TARGETDIR="%RESOURCES%\libreoffice-bin"
+REM Use PowerShell to run msiexec /a. We already cd'd into RESOURCES, so
+REM PowerShell inherits $PWD = RESOURCES. Cleaner than passing env vars.
+powershell -NoProfile -Command "$p = Start-Process msiexec -ArgumentList '/a', (Join-Path $PWD 'libreoffice.msi'), '/qn', ('TARGETDIR=' + (Join-Path $PWD 'libreoffice-bin')) -Wait -PassThru; if ($p.ExitCode -ne 0) { Write-Host ('ERROR: msiexec exit ' + $p.ExitCode); exit 1 }"
 if errorlevel 1 (
     echo ERROR: LibreOffice extraction failed
     exit /b 1
 )
-del "%RESOURCES%\libreoffice.msi"
+del libreoffice.msi
 if not exist "%RESOURCES%\libreoffice-bin\program\soffice.exe" echo WARNING: soffice.exe not at expected path
 echo OK: libreoffice downloaded
 :lo_done
