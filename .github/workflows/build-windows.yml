@@ -42,16 +42,6 @@ jobs:
         run: |
           git config --global user.email "build@pilotdeck.local"
           git config --global user.name "PilotDeck Build"
-          # build-win.bat does `git pull origin main`; make it a no-op-safe by
-          # allowing the current checkout to stand (we already checked out the right ref)
-
-      - name: Install root dependencies
-        working-directory: .
-        run: pnpm install --ignore-scripts
-
-      - name: Install desktop dependencies
-        working-directory: apps/desktop
-        run: npm install
 
       - name: Build all-in-one installer (downloads runtimes + builds + packs)
         working-directory: apps/desktop

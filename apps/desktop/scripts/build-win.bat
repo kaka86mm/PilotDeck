@@ -41,11 +41,17 @@ if errorlevel 1 (
 REM --- Step 2: Install dependencies ---
 if %SKIP_INSTALL%==0 (
     echo.
-    echo [2] Installing npm dependencies...
+    echo [2] Installing dependencies...
     cd /d "%REPO_ROOT%"
-    call npm install --ignore-scripts
+    REM Root project is a pnpm workspace (packageManager: pnpm@10.32.1).
+    REM Using npm here fails with "Cannot read properties of null (reading 'matches')".
+    where pnpm >nul 2>nul && (
+        call pnpm install --ignore-scripts
+    ) || (
+        call npm install --ignore-scripts
+    )
     if errorlevel 1 (
-        echo ERROR: npm install failed
+        echo ERROR: root install failed
         exit /b 1
     )
     cd /d "%DESKTOP_DIR%"
@@ -56,7 +62,7 @@ if %SKIP_INSTALL%==0 (
     )
     echo OK
 ) else (
-    echo [2] Skipping npm install ^(--skip-install^)
+    echo [2] Skipping install ^(--skip-install^)
 )
 
 REM --- Step 3: Download Node.js for Windows ---
