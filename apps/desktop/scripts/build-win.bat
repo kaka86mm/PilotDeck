@@ -211,7 +211,7 @@ echo.
 echo [4e] Downloading LibreOffice for Windows x64...
 mkdir "%RESOURCES%\libreoffice-bin" 2>nul
 cd /d "%RESOURCES%"
-curl -fsSL -o libreoffice.msi https://download.documentfoundation.org/libreoffice/stable/25.2.7/win/x86_64/LibreOffice_25.2.7_Win_x86-64.msi
+curl -fsSL -o libreoffice.msi https://download.documentfoundation.org/libreoffice/stable/25.8.7/win/x86_64/LibreOffice_25.8.7_Win_x86-64.msi
 if errorlevel 1 (
     echo ERROR: LibreOffice MSI download failed
     exit /b 1
