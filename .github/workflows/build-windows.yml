@@ -54,13 +54,13 @@ jobs:
         working-directory: apps/desktop
         shell: pwsh
         run: |
-          Write-Host "=== Checking skills in pilotdeck-main-bundle.tar ==="
-          $tar = "resources\pilotdeck-main-bundle.tar"
+          Write-Host "=== Checking skills in pilotdeck-main-bundle.tar.gz ==="
+          $tar = "resources\pilotdeck-main-bundle.tar.gz"
           $skillDirs = (& tar tf $tar | Select-String "^skills/[^/]+/$")
           Write-Host "Skill dirs in tar: $($skillDirs.Count)"
           $skillDirs | ForEach-Object { Write-Host "  $_" }
           if ($skillDirs.Count -lt 10) {
-            Write-Host "##[error]Only $($skillDirs.Count) skills in bundle tar (expected 13). Windows bsdtar may have dropped skills."
+            Write-Host "##[error]Only $($skillDirs.Count) skills in bundle tar (expected 20). Windows bsdtar may have dropped skills."
             exit 1
           }
           Write-Host "OK: $($skillDirs.Count) skills bundled"
@@ -75,7 +75,6 @@ jobs:
             @{Path="$dist\node-bin\node.exe"; Name="Node"},
             @{Path="$dist\git-bin\usr\bin\bash.exe"; Name="Git Bash"},
             @{Path="$dist\python-bin\python.exe"; Name="Python"},
-            @{Path="$dist\libreoffice-bin\program\soffice.exe"; Name="LibreOffice"}
           )
           $missing = 0
           foreach ($c in $checks) {

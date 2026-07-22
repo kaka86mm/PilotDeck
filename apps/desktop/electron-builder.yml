@@ -71,12 +71,12 @@ extraResources:
     to: node-bin/
   - from: resources/bun-bin/
     to: bun-bin/
-  - from: resources/pilotdeckui-bundle.tar
-    to: pilotdeckui-bundle.tar
-  - from: resources/pilotdeck-main-bundle.tar
-    to: pilotdeck-main-bundle.tar
-  - from: resources/pilotdeck-memory-core-bundle.tar
-    to: pilotdeck-memory-core-bundle.tar
+  - from: resources/pilotdeckui-bundle.tar.gz
+    to: pilotdeckui-bundle.tar.gz
+  - from: resources/pilotdeck-main-bundle.tar.gz
+    to: pilotdeck-main-bundle.tar.gz
+  - from: resources/pilotdeck-memory-core-bundle.tar.gz
+    to: pilotdeck-memory-core-bundle.tar.gz
   # ── Bundled runtime dependencies (Windows all-in-one) ──
   # These let office skills (docx/pptx/pdf/spreadsheets) run without the user
   # installing Git Bash / Python / poppler separately. LibreOffice is NOT bundled

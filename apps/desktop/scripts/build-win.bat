@@ -44,11 +44,16 @@ if %SKIP_INSTALL%==0 (
     echo [2] Installing dependencies...
     cd /d "%REPO_ROOT%"
     REM Root project is a pnpm workspace (packageManager: pnpm@10.32.1).
-    REM Using npm here fails with "Cannot read properties of null (reading 'matches')".
-    REM --shamefully-hoist flattens transitive deps to node_modules root (npm-style),
-    REM so direct imports of transitive deps (e.g. @codemirror/view via @uiw/react-codemirror) resolve in vite.
+    REM CRITICAL: node-linker=hoisted (set in .npmrc) produces flat, npm-style
+    REM node_modules with real directories. pnpm default (isolated) uses
+    REM junctions/symlinks into a .pnpm store; Windows bsdtar packs those as
+    REM symlinks which break after NSIS install + extraction on the user machine,
+    REM causing ERR_MODULE_NOT_FOUND at gateway startup. The env vars below are
+    REM belt-and-suspenders in case .npmrc is missing on the build host.
+    set "npm_config_node_linker=hoisted"
+    set "NPM_CONFIG_NODE_LINKER=hoisted"
     where pnpm >nul 2>nul && (
-        call pnpm install --ignore-scripts
+        call pnpm install --ignore-scripts --config.node-linker=hoisted
     ) || (
         call npm install --ignore-scripts
     )
@@ -249,24 +254,47 @@ mkdir dist\src\extension\plugins 2>nul
 xcopy /E /I /Y src\extension\plugins\builtin dist\src\extension\plugins\builtin >nul
 echo OK
 
+REM --- Step 6b: Prune devDependencies before packaging ---
+REM After vite build (static assets in ui/dist) and tsc build (server in
+REM dist/src), devDependencies and test tooling (playwright, vitest, eslint,
+REM typescript, mermaid, jsdom, etc.) are no longer needed at runtime.
+REM Pruning cuts the bundled node_modules significantly (~180MB+ of devDeps
+REM plus transitively-hoisted UI frontend libs not needed by the server).
+REM CI=true lets pnpm prune non-interactively in CI.
+echo.
+echo [6b] Pruning devDependencies (production-only node_modules)...
+cd /d "%REPO_ROOT%"
+set "CI=true"
+call pnpm prune --prod
+if errorlevel 1 (
+    echo WARNING: pnpm prune --prod failed, continuing with full node_modules
+) else (
+    echo OK
+)
+set "CI="
+cd /d "%UI_DIR%"
+call pnpm prune --prod 2>nul
+
 REM --- Step 7: Create bundle tars ---
 echo.
 echo [7] Creating bundle tars...
 
 cd /d "%UI_DIR%"
-tar cf "%RESOURCES%\pilotdeckui-bundle.tar" ^
+tar czf "%RESOURCES%\pilotdeckui-bundle.tar.gz" ^
     --exclude=node_modules/.cache --exclude=node_modules/.bin ^
+    --exclude=node_modules/.pnpm --exclude=node_modules/.ignored_* ^
     --exclude=node_modules/typescript --exclude=node_modules/@types ^
     --exclude=node_modules/vite --exclude=node_modules/@vitejs ^
     --exclude=node_modules/rollup --exclude=node_modules/@rollup ^
     --exclude=node_modules/esbuild --exclude=node_modules/@esbuild ^
     --exclude=node_modules/eslint --exclude=node_modules/@eslint ^
     package.json server shared dist scripts node_modules
-echo   pilotdeckui-bundle.tar OK
+echo   pilotdeckui-bundle.tar.gz OK
 
 cd /d "%REPO_ROOT%"
-tar cf "%RESOURCES%\pilotdeck-main-bundle.tar" ^
+tar czf "%RESOURCES%\pilotdeck-main-bundle.tar.gz" ^
     --exclude=node_modules/.cache --exclude=node_modules/.bin ^
+    --exclude=node_modules/.pnpm --exclude=node_modules/.ignored_* ^
     --exclude=node_modules/typescript --exclude=node_modules/@types ^
     --exclude=node_modules/vite --exclude=node_modules/@vitejs ^
     --exclude=node_modules/rollup --exclude=node_modules/@rollup ^
@@ -277,12 +305,12 @@ tar cf "%RESOURCES%\pilotdeck-main-bundle.tar" ^
     --exclude=third-party --exclude=dist/tests --exclude=dist/scripts ^
     --exclude=.git --exclude=packages ^
     skills src dist/src scripts node_modules package.json tsconfig.json
-echo   pilotdeck-main-bundle.tar OK
+echo   pilotdeck-main-bundle.tar.gz OK
 
 cd /d "%MEMORY_DIR%"
-tar cf "%RESOURCES%\pilotdeck-memory-core-bundle.tar" ^
+tar czf "%RESOURCES%\pilotdeck-memory-core-bundle.tar.gz" ^
     package.json lib ui-source
-echo   pilotdeck-memory-core-bundle.tar OK
+echo   pilotdeck-memory-core-bundle.tar.gz OK
 
 :skip_builds
 

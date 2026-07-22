@@ -6,9 +6,9 @@
  *   - Spawns `node-bin/node pilotdeckui/server/index.js` (instead of entry.js gateway)
  *   - Three tarballs to extract (pilotdeckui/server resolves pilotdeck-memory-core
  *     via `../../../pilotdeck-memory-core/lib/index.js`, so all three must be siblings):
- *       Resources/pilotdeckui-bundle.tar         → Resources/pilotdeckui/
- *       Resources/pilotdeck-main-bundle.tar     → Resources/pilotdeck-main/
- *       Resources/pilotdeck-memory-core-bundle.tar → Resources/edgeclaw-memory-core/
+ *       Resources/pilotdeckui-bundle.tar.gz.gz         → Resources/pilotdeckui/
+ *       Resources/pilotdeck-main-bundle.tar.gz     → Resources/pilotdeck-main/
+ *       Resources/pilotdeck-memory-core-bundle.tar.gz → Resources/edgeclaw-memory-core/
  *   - Sets BUN_BIN, PILOTDECK_MAIN_DIR so the server can spawn `bun` subprocesses
  *   - pilotdeckui /health responds with `{status: "ok", ...}` (not `{ok: true}`)
  */
@@ -574,21 +574,21 @@ export class ServerManager extends EventEmitter<ServerManagerEvents> {
     await this.ensureBundleExtracted(
       resources,
       runtimeBaseDir,
-      "pilotdeck-memory-core-bundle.tar",
+      "pilotdeck-memory-core-bundle.tar.gz",
       "edgeclaw-memory-core",
       "正在解压应用资源 (1/3)",
     );
     const pilotDeckUiDir = await this.ensureBundleExtracted(
       resources,
       runtimeBaseDir,
-      "pilotdeckui-bundle.tar",
+      "pilotdeckui-bundle.tar.gz.gz",
       "pilotdeckui",
       "正在解压应用资源 (2/3)",
     );
     const pilotDeckMainDir = await this.ensureBundleExtracted(
       resources,
       runtimeBaseDir,
-      "pilotdeck-main-bundle.tar",
+      "pilotdeck-main-bundle.tar.gz",
       "pilotdeck-main",
       "正在解压应用资源 (3/3)",
     );
@@ -624,7 +624,7 @@ export class ServerManager extends EventEmitter<ServerManagerEvents> {
     linkDirectory(memNodeModLink, memCoreDir);
 
     // npm hoists shared deps (ws, express, etc.) into the root node_modules/
-    // which ends up inside pilotdeck-main-bundle.tar, not pilotdeckui-bundle.tar.
+    // which ends up inside pilotdeck-main-bundle.tar.gz, not pilotdeckui-bundle.tar.gz.
     // ESM resolution walks up the directory tree looking for node_modules/ dirs.
     // A symlink at <runtimeBaseDir>/node_modules → pilotdeck-main/node_modules
     // lets the resolver find hoisted packages after exhausting pilotdeckui's own.
