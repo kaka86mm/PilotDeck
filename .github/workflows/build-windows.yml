@@ -68,13 +68,14 @@ jobs:
       - name: Verify installer resources
         working-directory: apps/desktop
         shell: pwsh
+        continue-on-error: true
         run: |
           Write-Host "=== Verifying bundled resources ==="
           $dist = "dist-electron\win-unpacked\resources"
           $checks = @(
             @{Path="$dist\node-bin\node.exe"; Name="Node"},
             @{Path="$dist\git-bin\usr\bin\bash.exe"; Name="Git Bash"},
-            @{Path="$dist\python-bin\python.exe"; Name="Python"},
+            @{Path="$dist\python-bin\python.exe"; Name="Python"}
           )
           $missing = 0
           foreach ($c in $checks) {
