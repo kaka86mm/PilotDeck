@@ -53,7 +53,7 @@ dmg:
 win:
   target:
     - target: nsis
-      arch: [x64, arm64]
+      arch: [x64]
   icon: resources/icon.ico
 
 nsis:
