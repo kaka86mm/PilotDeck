@@ -45,10 +45,10 @@ if %SKIP_INSTALL%==0 (
     cd /d "%REPO_ROOT%"
     REM Root project is a pnpm workspace (packageManager: pnpm@10.32.1).
     REM Using npm here fails with "Cannot read properties of null (reading 'matches')".
-    REM Note: do NOT use --ignore-scripts; it skips postinstall steps that some
-    REM packages (e.g. @codemirror/view deps) need, causing vite resolve failures.
+    REM --shamefully-hoist flattens transitive deps to node_modules root (npm-style),
+    REM so direct imports of transitive deps (e.g. @codemirror/view via @uiw/react-codemirror) resolve in vite.
     where pnpm >nul 2>nul && (
-        call pnpm install
+        call pnpm install --shamefully-hoist
     ) || (
         call npm install
     )
