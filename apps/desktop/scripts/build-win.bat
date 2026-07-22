@@ -276,7 +276,7 @@ tar cf "%RESOURCES%\pilotdeck-main-bundle.tar" ^
     --exclude=edgeclaw-memory-core --exclude=docs --exclude=tests ^
     --exclude=third-party --exclude=dist/tests --exclude=dist/scripts ^
     --exclude=.git --exclude=packages ^
-    src dist\src scripts node_modules package.json tsconfig.json skills
+    skills src dist/src scripts node_modules package.json tsconfig.json
 echo   pilotdeck-main-bundle.tar OK
 
 cd /d "%MEMORY_DIR%"

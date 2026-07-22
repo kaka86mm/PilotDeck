@@ -50,6 +50,21 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: scripts\build-win.bat --x64-only
 
+      - name: Verify skills in bundle tar
+        working-directory: apps/desktop
+        shell: pwsh
+        run: |
+          Write-Host "=== Checking skills in pilotdeck-main-bundle.tar ==="
+          $tar = "resources\pilotdeck-main-bundle.tar"
+          $skillDirs = (& tar tf $tar | Select-String "^skills/[^/]+/$")
+          Write-Host "Skill dirs in tar: $($skillDirs.Count)"
+          $skillDirs | ForEach-Object { Write-Host "  $_" }
+          if ($skillDirs.Count -lt 10) {
+            Write-Host "##[error]Only $($skillDirs.Count) skills in bundle tar (expected 13). Windows bsdtar may have dropped skills."
+            exit 1
+          }
+          Write-Host "OK: $($skillDirs.Count) skills bundled"
+
       - name: Verify installer resources
         working-directory: apps/desktop
         shell: pwsh
