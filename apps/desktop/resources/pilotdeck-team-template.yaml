@@ -1,0 +1,150 @@
+# ======================================================================
+# PilotDeck 配置文件（团队预置版）
+# 使用前请读本文件顶部的说明，改完 apiKey 那一行即可。
+# ======================================================================
+#
+# 【Windows 同事使用步骤】
+#
+# 1. 安装 PilotDesk 桌面应用
+#    下载: https://github.com/OpenBMB/PilotDeck/releases
+#    选 PilotDeck-xxxx-win-x64.exe，双击安装。
+#
+# 2. 安装 Git for Windows（技能脚本依赖 bash，必须装）
+#    下载: https://git-scm.com/download/win
+#    默认选项安装即可。装完 bash 才能运行 docx/pptx/pdf 等技能。
+#
+# 3. （可选）安装 LibreOffice（让 office 文档能渲染成图片预览）
+#    下载: https://www.libreoffice.org/download/
+#    不装也能创建/编辑文档，只是不能把文档转成图片查看效果。
+#
+# 4. 放置本配置文件 + 填入你的 key
+#    a. 把本文件放到:  C:\Users\你的用户名\.pilotdeck\pilotdeck.yaml
+#       （即 %USERPROFILE%\.pilotdeck\pilotdeck.yaml，文件夹不存在就新建）
+#    b. 用记事本打开本文件，找到下面 apiKey 那一行，
+#       把 <在此填入你的acccode-key> 换成你自己的 key（sk- 开头）。
+#    c. key 到 https://acccode.store 注册获取。
+#
+# 完成后启动 PilotDesk 即可使用，无需其它配置。
+# 模型说明: glm-5.2(主力) / deepseek-v4-flash(轻量) / qwen3.5-397b(复杂)
+# ======================================================================
+
+schemaVersion: 1
+agent:
+  model: acccode/deepseek-v4-flash
+  params: {}
+  subagents:
+    default: acccode/deepseek-v4-flash
+    params: {}
+    timeoutMs: 300000
+    models:
+      simple: acccode/deepseek-v4-flash
+      medium: acccode/deepseek-v4-flash
+      orchestrator: acccode/deepseek-v4-flash
+  maxContextTokens: 524288
+  maxOutputTokens: 65536
+  thinking:
+    enabled: true
+    budgetTokens: 4096
+model:
+  providers:
+    acccode:
+      protocol: openai
+      url: https://acccode.store/v1
+      # ↓↓↓ 把下面这行的尖括号内容换成你自己的 acccode key（sk- 开头）↓↓↓
+      apiKey: <在此填入你的acccode-key>
+      # ↑↑↑ 例如: apiKey: sk-abcdef1234567890... ↑↑↑
+      timeoutMs: 120000
+      models:
+        qwen3.5-397b:
+          multimodal:
+            input:
+              - text
+              - image
+          capabilities:
+            maxContextTokens: 262144
+            maxOutputTokens: 32768
+        deepseek-v4-flash:
+          capabilities:
+            maxContextTokens: 262144
+            maxOutputTokens: 32768
+        glm-5.2:
+          capabilities:
+            maxContextTokens: 524288
+            maxOutputTokens: 65536
+            supportsThinking: true
+memory:
+  enabled: true
+  reasoningMode: answer_first
+  autoIndexIntervalMinutes: 30
+  autoDreamIntervalMinutes: 60
+  captureStrategy: last_turn
+  includeAssistant: true
+  maxMessageChars: 6000
+  heartbeatBatchSize: 30
+webui:
+  runtime:
+    host: 127.0.0.1
+    serverPort: 3001
+    vitePort: 5173
+    apiTimeoutMs: 120000
+telemetry:
+  enabled: false
+extension:
+  builtinPluginsEnabled: {}
+  includeHookEvents: false
+router:
+  enabled: true
+  scenarios:
+    default: acccode/deepseek-v4-flash
+  fallback:
+    default:
+      - acccode/qwen3.5-397b
+  zeroUsageRetry:
+    enabled: true
+    maxAttempts: 2
+  transientRetry:
+    enabled: true
+    maxAttempts: 5
+    baseDelayMs: 1000
+    maxDelayMs: 15000
+  tokenSaver:
+    enabled: true
+    judge: acccode/qwen3.5-397b
+    defaultTier: medium
+    judgeTimeoutMs: 15000
+    cacheAwareSwitching:
+      enabled: true
+      minSavingsRatio: 0.15
+    subagent:
+      policy: judge
+    tiers:
+      simple:
+        model: acccode/deepseek-v4-flash
+        description: Simple greetings, confirmations, single-step Q&A
+      medium:
+        model: acccode/deepseek-v4-flash
+        description: Single tool call, short text generation, code generation
+      complex:
+        model: acccode/glm-5.2
+        description: "Needs sub-agent orchestration"
+      reasoning:
+        model: acccode/glm-5.2
+        description: "Deep single-agent work: multi-file operations, analysis"
+    rules:
+      - complex is ONLY for tasks that need sub-agent orchestration
+      - Multi-file operations without orchestration should be reasoning
+      - Simple file creation or single code generation is medium
+      - Trivial greetings or reading one file is simple
+  autoOrchestrate:
+    enabled: true
+    triggerTiers:
+      - complex
+    slimSystemPrompt: true
+    subagentMaxTokens: 16384
+  stats:
+    enabled: true
+cron:
+  enabled: true
+  timezone: Asia/Shanghai
+  maxConcurrentRuns: 2
+  runTimeoutMinutes: 60

@@ -1,0 +1,108 @@
+name: Build Windows Installer (All-in-One)
+
+# 构建 PilotDesk Windows 全内置安装包：自带 Git Bash / Python / poppler / LibreOffice，
+# 同事双击安装即用 office skills，无需额外装任何依赖。
+#
+# 触发：手动（workflow_dispatch）或推送 win-allinone 分支。
+# 产出：PilotDeck-<version>-win-x64.exe（约 1-1.5GB），作为 artifact 下载。
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - win-allinone
+    paths:
+      - 'apps/desktop/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # desktop 源码在 fix/desktop-app-icon 分支；win-allinone 基于它
+          ref: ${{ github.ref }}
+          fetch-depth: 1
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+
+      - name: Setup pnpm
+        run: npm install -g pnpm@10.32.1
+
+      - name: Configure git (avoid prompt during build)
+        run: |
+          git config --global user.email "build@pilotdeck.local"
+          git config --global user.name "PilotDeck Build"
+
+      - name: Build all-in-one installer (downloads runtimes + builds + packs)
+        working-directory: apps/desktop
+        shell: cmd
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: scripts\build-win.bat --x64-only
+
+      - name: Verify skills in bundle tar
+        working-directory: apps/desktop
+        shell: pwsh
+        run: |
+          Write-Host "=== Checking skills in pilotdeck-main-bundle.tar ==="
+          $tar = "resources\pilotdeck-main-bundle.tar"
+          $skillDirs = (& tar tf $tar | Select-String "^skills/[^/]+/$")
+          Write-Host "Skill dirs in tar: $($skillDirs.Count)"
+          $skillDirs | ForEach-Object { Write-Host "  $_" }
+          if ($skillDirs.Count -lt 10) {
+            Write-Host "##[error]Only $($skillDirs.Count) skills in bundle tar (expected 13). Windows bsdtar may have dropped skills."
+            exit 1
+          }
+          Write-Host "OK: $($skillDirs.Count) skills bundled"
+
+      - name: Verify installer resources
+        working-directory: apps/desktop
+        shell: pwsh
+        run: |
+          Write-Host "=== Verifying bundled resources ==="
+          $dist = "dist-electron\win-unpacked\resources"
+          $checks = @(
+            @{Path="$dist\node-bin\node.exe"; Name="Node"},
+            @{Path="$dist\git-bin\usr\bin\bash.exe"; Name="Git Bash"},
+            @{Path="$dist\python-bin\python.exe"; Name="Python"},
+            @{Path="$dist\libreoffice-bin\program\soffice.exe"; Name="LibreOffice"}
+          )
+          $missing = 0
+          foreach ($c in $checks) {
+            if (Test-Path $c.Path) {
+              Write-Host "  OK   $($c.Name): $($c.Path)"
+            } else {
+              Write-Host "  MISS $($c.Name): $($c.Path)"
+              $missing++
+            }
+          }
+          if ($missing -gt 0) {
+            Write-Host "WARNING: $missing resource(s) missing — office skills may not fully work"
+          }
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PilotDeck-windows-allinone-x64
+          path: apps/desktop/dist-electron/PilotDeck-*-win-x64.exe
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Show artifact info
+        shell: pwsh
+        run: |
+          Write-Host "=== Build output ==="
+          Get-ChildItem apps/desktop/dist-electron/PilotDeck-*-win-x64.exe | ForEach-Object {
+            $sizeMB = [math]::Round($_.Length / 1MB, 1)
+            Write-Host "  $($_.Name) — $sizeMB MB"
+          }
