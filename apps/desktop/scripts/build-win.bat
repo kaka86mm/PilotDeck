@@ -48,9 +48,9 @@ if %SKIP_INSTALL%==0 (
     REM --shamefully-hoist flattens transitive deps to node_modules root (npm-style),
     REM so direct imports of transitive deps (e.g. @codemirror/view via @uiw/react-codemirror) resolve in vite.
     where pnpm >nul 2>nul && (
-        call pnpm install --shamefully-hoist
+        call pnpm install --shamefully-hoist --ignore-scripts
     ) || (
-        call npm install
+        call npm install --ignore-scripts
     )
     if errorlevel 1 (
         echo ERROR: root install failed
