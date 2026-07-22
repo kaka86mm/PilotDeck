@@ -48,7 +48,7 @@ if %SKIP_INSTALL%==0 (
     REM --shamefully-hoist flattens transitive deps to node_modules root (npm-style),
     REM so direct imports of transitive deps (e.g. @codemirror/view via @uiw/react-codemirror) resolve in vite.
     where pnpm >nul 2>nul && (
-        call pnpm install --shamefully-hoist --ignore-scripts
+        call pnpm install --ignore-scripts
     ) || (
         call npm install --ignore-scripts
     )
@@ -207,28 +207,11 @@ if not exist "Library\bin\pdftoppm.exe" echo WARNING: pdftoppm path differs, pop
 echo OK: poppler downloaded
 :poppler_done
 
-REM --- Step 4e: Download LibreOffice (soffice for office rendering) ---
-if exist "%RESOURCES%\libreoffice-bin\program\soffice.exe" goto :lo_done
-echo.
-echo [4e] Downloading LibreOffice for Windows x64...
-mkdir "%RESOURCES%\libreoffice-bin" 2>nul
-cd /d "%RESOURCES%"
-curl -fsSL -o libreoffice.msi https://download.documentfoundation.org/libreoffice/stable/25.8.7/win/x86_64/LibreOffice_25.8.7_Win_x86-64.msi
-if errorlevel 1 (
-    echo ERROR: LibreOffice MSI download failed
-    exit /b 1
-)
-REM Use PowerShell to run msiexec /a. We already cd'd into RESOURCES, so
-REM PowerShell inherits $PWD = RESOURCES. Cleaner than passing env vars.
-powershell -NoProfile -Command "$p = Start-Process msiexec -ArgumentList '/a', (Join-Path $PWD 'libreoffice.msi'), '/qn', ('TARGETDIR=' + (Join-Path $PWD 'libreoffice-bin')) -Wait -PassThru; if ($p.ExitCode -ne 0) { Write-Host ('ERROR: msiexec exit ' + $p.ExitCode); exit 1 }"
-if errorlevel 1 (
-    echo ERROR: LibreOffice extraction failed
-    exit /b 1
-)
-del libreoffice.msi
-if not exist "%RESOURCES%\libreoffice-bin\program\soffice.exe" echo WARNING: soffice.exe not at expected path
-echo OK: libreoffice downloaded
-:lo_done
+REM --- Step 4e: LibreOffice (NOT bundled) ---
+REM LibreOffice is intentionally NOT bundled (~350MB; msiexec extraction is
+REM fragile in CI). docx/pptx creation and editing work without it; only
+REM rendering to image preview needs it. Users who want rendering install
+REM LibreOffice separately from https://www.libreoffice.org/
 
 REM --- Step 5: Build pilotdeckui ---
 if %SKIP_BUILD%==0 (

@@ -92,9 +92,8 @@ function buildBundledPath(nodeBin: string, bunBin: string): string {
       // poppler: provides pdftoppm.exe for PDF page rendering
       const popplerBin = path.join(resources, "poppler-bin", "Library", "bin");
       if (fsSync.existsSync(path.join(popplerBin, "pdftoppm.exe"))) parts.push(popplerBin);
-      // LibreOffice: provides soffice.exe for docx/pptx rendering
-      const loProgram = path.join(resources, "libreoffice-bin", "program");
-      if (fsSync.existsSync(path.join(loProgram, "soffice.exe"))) parts.push(loProgram);
+      // LibreOffice is NOT bundled — soffice.exe resolves from system PATH if the
+      // user installed LibreOffice themselves (optional, only for render-to-image).
     }
   }
   parts.push(process.env.PATH ?? "");
