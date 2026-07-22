@@ -113,6 +113,43 @@ function getPilotDeckDir(): string {
   return path.join(os.homedir(), ".pilotdeck");
 }
 
+/**
+ * Sync bundled skills from the extracted pilotdeck-main/skills/ directory into
+ * ~/.pilotdeck/skills/ (user scope). This mirrors what dev mode's
+ * bootstrap-pilotdeck-config.mjs (syncRepoSkillsToPilotHome) does via the
+ * predev hook, which packaged/desktop mode never runs — so without this,
+ * SkillManager sees an empty user-scope skills list.
+ *
+ * Only copies a skill when its target slug does not already exist, so user
+ * edits/installs in ~/.pilotdeck/skills are never overwritten.
+ */
+function syncBundledSkillsToPilotHome(
+  bundledSkillsDir: string,
+  pilotHome: string,
+): void {
+  if (!fsSync.existsSync(bundledSkillsDir)) return;
+  const targetRoot = path.join(pilotHome, "skills");
+  fsSync.mkdirSync(targetRoot, { recursive: true });
+  let created = 0;
+  for (const entry of fsSync.readdirSync(bundledSkillsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const slug = entry.name;
+    const src = path.join(bundledSkillsDir, slug);
+    const dst = path.join(targetRoot, slug);
+    if (fsSync.existsSync(dst)) continue;
+    if (!fsSync.existsSync(path.join(src, "SKILL.md"))) continue;
+    try {
+      fsSync.cpSync(src, dst, { recursive: true });
+      created++;
+    } catch (e) {
+      console.warn(`[pilotdeck] Failed to sync bundled skill ${slug}:`, e);
+    }
+  }
+  if (created > 0) {
+    console.log(`[pilotdeck] Synced ${created} bundled skill(s) into ${targetRoot}`);
+  }
+}
+
 function getPidFilePath(): string {
   return path.join(getPilotDeckDir(), "desktop.server.pid");
 }
@@ -554,6 +591,14 @@ export class ServerManager extends EventEmitter<ServerManagerEvents> {
       "pilotdeck-main-bundle.tar",
       "pilotdeck-main",
       "正在解压应用资源 (3/3)",
+    );
+
+    // Packaged mode never runs the dev-mode bootstrap that syncs repo skills
+    // into ~/.pilotdeck/skills, so SkillManager's user-scope list would be
+    // empty. Sync bundled skills here once per version (skips existing slugs).
+    syncBundledSkillsToPilotHome(
+      path.join(pilotDeckMainDir, "skills"),
+      getPilotDeckDir(),
     );
 
     // ui/server/ files import compiled JS via relative paths like
