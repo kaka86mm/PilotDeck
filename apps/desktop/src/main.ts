@@ -319,6 +319,27 @@ function resolveOnboardingHtmlPath(): string {
 }
 
 async function ensureConfigOrOnboard(): Promise<boolean> {
+  // First-launch shortcut: if the user has no config yet AND we ship a default
+  // template in resources/, copy it into place so onboarding is skipped. The
+  // template has a placeholder apiKey that passes structural validation, so the
+  // app opens straight to the main UI; the user fills in their real key in the
+  // YAML or settings. This makes the all-in-one installer truly double-click-to-use.
+  if (!fs.existsSync(configPath)) {
+    const bundledTemplate = path.join(
+      typeof process.resourcesPath === "string" ? process.resourcesPath : "",
+      "pilotdeck-team-template.yaml",
+    );
+    if (fs.existsSync(bundledTemplate)) {
+      try {
+        fs.mkdirSync(path.dirname(configPath), { recursive: true });
+        fs.copyFileSync(bundledTemplate, configPath);
+        console.log("[pilotdeck] Copied bundled acccode template to", configPath);
+      } catch (e) {
+        console.warn("[pilotdeck] Failed to copy bundled template:", e);
+      }
+    }
+  }
+
   // Two-stage check: file must exist AND its contents must satisfy what the
   // bundled server's load-env.js will assert at startup. Skipping the second
   // stage is what produced the historical "Server health check failed within
