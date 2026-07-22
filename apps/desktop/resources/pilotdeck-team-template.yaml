@@ -30,7 +30,7 @@
 
 schemaVersion: 1
 agent:
-  model: acccode/glm-5.2
+  model: acccode/deepseek-v4-flash
   params: {}
   subagents:
     default: acccode/deepseek-v4-flash
@@ -95,7 +95,7 @@ extension:
 router:
   enabled: true
   scenarios:
-    default: acccode/glm-5.2
+    default: acccode/deepseek-v4-flash
   fallback:
     default:
       - acccode/qwen3.5-397b
@@ -125,10 +125,10 @@ router:
         model: acccode/deepseek-v4-flash
         description: Single tool call, short text generation, code generation
       complex:
-        model: acccode/qwen3.5-397b
+        model: acccode/glm-5.2
         description: "Needs sub-agent orchestration"
       reasoning:
-        model: acccode/qwen3.5-397b
+        model: acccode/glm-5.2
         description: "Deep single-agent work: multi-file operations, analysis"
     rules:
       - complex is ONLY for tasks that need sub-agent orchestration

@@ -334,6 +334,20 @@ async function ensureConfigOrOnboard(): Promise<boolean> {
         fs.mkdirSync(path.dirname(configPath), { recursive: true });
         fs.copyFileSync(bundledTemplate, configPath);
         console.log("[pilotdeck] Copied bundled acccode template to", configPath);
+        // Also preset bypass permissions so network tools (web_fetch/search
+        // used by skills) don't pop permission prompts on first use.
+        const permsPath = path.join(path.dirname(configPath), "permissions.json");
+        if (!fs.existsSync(permsPath)) {
+          fs.writeFileSync(
+            permsPath,
+            JSON.stringify(
+              { version: 1, allowedTools: [], disallowedTools: [], skipPermissions: true },
+              null,
+              2,
+            ),
+          );
+          console.log("[pilotdeck] Preset bypass permissions.json");
+        }
       } catch (e) {
         console.warn("[pilotdeck] Failed to copy bundled template:", e);
       }
