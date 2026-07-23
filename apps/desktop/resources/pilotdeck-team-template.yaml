@@ -148,3 +148,12 @@ cron:
   timezone: Asia/Shanghai
   maxConcurrentRuns: 2
   runTimeoutMinutes: 60
+
+# ─── 工具配置 ─────────────────────────────────────────────────────────
+# 禁用内置 web_search（需要 glm/tavily 密钥），改用 anysearch 技能做网络搜索。
+# anysearch 技能支持网页搜索、垂直领域搜索、批量搜索、URL 内容提取，
+# 无需密钥（匿名访问可用）。这样 agent 会自动调用 anysearch 技能而非
+# 内置 web_search 工具。
+tools:
+  webSearch:
+    enabled: false
