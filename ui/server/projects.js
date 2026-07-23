@@ -238,6 +238,16 @@ async function getProjects(progressCallback = null) {
     // started from the General section use this cwd; sessions are
     // sourced from the same backend as any other project.
     const generalHome = resolvePilotHome(process.env);
+    // The general workspace's agent cwd must NOT be ~/.pilotdeck itself,
+    // because FileArtifactCollector excludes .pilotdeck from artifact
+    // scanning. Use a dedicated workspace/ subdir so file changes are
+    // detected and download cards appear in the chat UI.
+    const generalWorkspace = path.join(generalHome, "workspace");
+    try {
+        await fs.mkdir(generalWorkspace, { recursive: true });
+    } catch {
+        // best-effort; session creation will fail with a clearer error
+    }
     let generalSessions = [];
     let generalTotal = 0;
     let generalLastActivity;
@@ -269,12 +279,12 @@ async function getProjects(progressCallback = null) {
         generalTotal = 0;
         generalLastActivity = undefined;
     }
-    rememberProjectDirectory('general', generalHome);
+    rememberProjectDirectory('general', generalWorkspace);
     result.unshift({
         name: 'general',
         displayName: 'general',
-        fullPath: generalHome,
-        path: generalHome,
+        fullPath: generalWorkspace,
+        path: generalWorkspace,
         lastActivity: generalLastActivity,
         sessions: generalSessions,
         sessionMeta: {
