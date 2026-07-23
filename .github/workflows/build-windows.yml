@@ -15,7 +15,7 @@ on:
       - 'apps/desktop/**'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows:
@@ -106,3 +106,26 @@ jobs:
             $sizeMB = [math]::Round($_.Length / 1MB, 1)
             Write-Host "  $($_.Name) — $sizeMB MB"
           }
+
+      - name: Publish to GitHub Release (for auto-update)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = (node -p "require('./apps/desktop/package.json').version")
+          $tag = "v$version"
+          $exe = (Get-ChildItem apps/desktop/dist-electron/PilotDeck-*-win-x64.exe | Select-Object -First 1).FullName
+          Write-Host "=== Publishing Release $tag ==="
+          Write-Host "Exe: $exe"
+          # Create release if it doesn't exist, then upload (clobber = overwrite)
+          gh release create "$tag" "$exe" `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --title "PilotDeck $tag" `
+            --notes "PilotDeck Desktop $tag - Windows x64 All-in-One" `
+            --latest 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Release already exists, uploading asset..."
+            gh release upload "$tag" "$exe" --clobber --repo "$env:GITHUB_REPOSITORY"
+          }
+          Write-Host "=== Release published ==="
+          gh release view "$tag" --repo "$env:GITHUB_REPOSITORY" --json assets --jq '.assets[].name'

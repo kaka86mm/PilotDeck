@@ -78,6 +78,8 @@ let currentServerPort: number | null = null;
 const PILOTDECK_DIR = path.dirname(configPath);
 const SERVER_LOG_PATH = path.join(PILOTDECK_DIR, "desktop.server.log");
 const REPO_URL = "https://github.com/OpenBMB/PilotDeck";
+// Fork repo where releases are published for auto-update.
+const UPDATE_REPO = "kaka86mm/PilotDeck";
 const ISSUES_URL = `${REPO_URL}/issues`;
 
 /**
@@ -132,6 +134,101 @@ function setupAboutPanel(): void {
     version: versionLine,
     copyright: "Copyright © 2026 PilotDeck Contributors. AGPL-3.0-or-later.",
   });
+}
+
+// ────────────────────── Auto-update check ──────────────────────────────
+//
+// Simple binary update: fetch the latest GitHub Release tag from the fork
+// repo, compare with the installed version, and prompt the user to download
+// if a newer version exists. No electron-updater / code-signing needed —
+// the user downloads the NSIS exe and runs it (upgrade-in-place preserves
+// all user data under ~/.pilotdeck/).
+
+let updateCheckDone = false;
+
+async function checkForUpdates(silent: boolean): Promise<void> {
+  if (isDev) {
+    if (!silent) {
+      void dialog.showMessageBox({
+        type: "info",
+        title: "检查更新",
+        message: "开发模式下不检查更新。",
+      });
+    }
+    return;
+  }
+  if (updateCheckDone && silent) return;
+  updateCheckDone = true;
+
+  try {
+    // GitHub redirects /releases/latest to /releases/tag/vX.X.X
+    const resp = await fetch(
+      `https://github.com/${UPDATE_REPO}/releases/latest`,
+      { redirect: "manual" },
+    );
+    const location = resp.headers.get("location") || "";
+    // Extract version from redirect URL: .../tag/v0.0.12
+    const match = location.match(/\/tag\/v?(.+)$/);
+    if (!match) {
+      if (!silent) {
+        void dialog.showMessageBox({
+          type: "warning",
+          title: "检查更新",
+          message: "无法获取最新版本信息，请稍后重试。",
+        });
+      }
+      return;
+    }
+    const latestVersion = match[1].trim();
+    const currentVersion = app.getVersion();
+
+    if (compareVersions(latestVersion, currentVersion) <= 0) {
+      if (!silent) {
+        void dialog.showMessageBox({
+          type: "info",
+          title: "检查更新",
+          message: `PilotDesk 已是最新版本 (v${currentVersion})。`,
+        });
+      }
+      return;
+    }
+
+    const choice = await dialog.showMessageBox({
+      type: "info",
+      title: "发现新版本",
+      message: `发现新版本 v${latestVersion}！`,
+      detail: `当前版本: v${currentVersion}\n新版本将修复问题并增加功能。\n\n点击"前往下载"打开浏览器下载页面，下载后双击安装即可（不会清除你的配置和数据）。`,
+      buttons: ["前往下载", "稍后再说"],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (choice.response === 0) {
+      void shell.openExternal(
+        `https://github.com/${UPDATE_REPO}/releases/latest`,
+      );
+    }
+  } catch (e) {
+    if (!silent) {
+      void dialog.showMessageBox({
+        type: "warning",
+        title: "检查更新",
+        message: `检查更新失败: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    }
+  }
+}
+
+// Returns >0 if a > b, <0 if a < b, 0 if equal. Handles semver like "0.0.12".
+function compareVersions(a: string, b: string): number {
+  const pa = a.split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = b.split(".").map((n) => parseInt(n, 10) || 0);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const da = pa[i] || 0;
+    const db = pb[i] || 0;
+    if (da !== db) return da - db;
+  }
+  return 0;
 }
 
 function setupAppMenu(): void {
@@ -232,6 +329,12 @@ function setupAppMenu(): void {
             },
           },
           { type: "separator" },
+          {
+            label: "检查更新…",
+            click: () => {
+              void checkForUpdates(false);
+            },
+          },
           {
             label: "报告问题…",
             click: () => {
@@ -491,6 +594,11 @@ if (!gotLock) {
     setupAboutPanel();
     setupAppMenu();
     registerIpcHandlers();
+
+    // Check for updates 10s after launch (non-blocking, silent).
+    if (!isDev) {
+      setTimeout(() => { void checkForUpdates(true); }, 10_000);
+    }
 
     const configured = await ensureConfigOrOnboard();
     if (!configured) {
