@@ -153,9 +153,20 @@ export class FileArtifactCollector {
   observeToolResult(result: PilotDeckToolResult): void {
     if (result.type !== "success") return;
 
+    // send_attachment explicitly delivers a file to the user. These files
+    // may live outside the project workspace (e.g. in /tmp or Downloads),
+    // so they must bypass the workspace/isWithin filter that addExplicitPath
+    // applies. Without this, the file is silently dropped and the UI never
+    // shows a download card.
+    const isAttachmentDelivery = result.toolName === "send_attachment";
+
     for (const item of result.content) {
       if (item.type === "file") {
-        this.addExplicitPath(item.path);
+        if (isAttachmentDelivery) {
+          this.addAttachmentPath(item.path);
+        } else {
+          this.addExplicitPath(item.path);
+        }
       }
     }
 
@@ -208,6 +219,18 @@ export class FileArtifactCollector {
     this.explicitCandidates.set(absolutePath, { absolutePath, source: "tool" });
   }
 
+  /**
+   * Like addExplicitPath but does NOT require the file to be inside the
+   * project workspace. Used by send_attachment so files in /tmp, Downloads,
+   * or any other location still produce a download card in the UI.
+   * Still skips sensitive files (.env, *.key, etc.) for safety.
+   */
+  private addAttachmentPath(candidate: string): void {
+    const absolutePath = path.resolve(this.cwd, candidate);
+    if (isSensitivePath(absolutePath)) return;
+    this.explicitCandidates.set(absolutePath, { absolutePath, source: "tool" });
+  }
+
   private async scanWorkspace(
     reusableFingerprints?: ReadonlyMap<string, FileFingerprint>,
   ): Promise<Array<{ absolutePath: string; fingerprint: FileFingerprint }>> {
@@ -254,7 +277,12 @@ export class FileArtifactCollector {
     candidate: ArtifactCandidate,
     statusValue: FileArtifactStatus,
   ): Promise<FileArtifact | undefined> {
-    if (!isWithin(this.cwd, candidate.absolutePath) || !this.isAllowedArtifactPath(candidate.absolutePath)) {
+    // Skip workspace filtering for tool-sourced candidates that may be
+    // outside cwd (send_attachment files). Only apply sensitive-file filter.
+    const isOutsideWorkspace = !isWithin(this.cwd, candidate.absolutePath);
+    if (isOutsideWorkspace) {
+      if (candidate.source !== "tool" || isSensitivePath(candidate.absolutePath)) return undefined;
+    } else if (!this.isAllowedArtifactPath(candidate.absolutePath)) {
       return undefined;
     }
     const fingerprint = candidate.fingerprint
@@ -265,7 +293,12 @@ export class FileArtifactCollector {
       ).catch(() => undefined);
     if (!fingerprint) return undefined;
 
-    const relativePath = normalizeRelativePath(path.relative(this.cwd, candidate.absolutePath));
+    // For files outside the workspace, use the basename as the display path
+    // (the download endpoint resolves by absolute path for attachments).
+    const rawRelative = path.relative(this.cwd, candidate.absolutePath);
+    const relativePath = rawRelative && !rawRelative.startsWith("..")
+      ? normalizeRelativePath(rawRelative)
+      : path.basename(candidate.absolutePath);
     if (!relativePath) return undefined;
     const before = this.baseline.get(candidate.absolutePath);
     if (before?.sha256 === fingerprint.sha256) {
