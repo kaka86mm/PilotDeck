@@ -444,6 +444,17 @@ if errorlevel 1 (
 )
 echo OK
 
+REM --- Step 9b: Diagnostic - print resources/ sizes ---
+echo.
+echo [9b] Resource directory sizes:
+powershell -Command "Get-ChildItem '%RESOURCES%' | ForEach-Object { $size = (Get-ChildItem $_.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum; Write-Host ('  {0}: {1:N1} MB' -f $_.Name, ($size/1MB)) }"
+echo   Total resources:
+powershell -Command "$total = (Get-ChildItem '%RESOURCES%' -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum; Write-Host ('  {0:N1} MB' -f ($total/1MB))"
+echo   dist/ size:
+powershell -Command "$dsize = (Get-ChildItem '%DESKTOP_DIR%dist' -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum; Write-Host ('  {0:N1} MB' -f ($dsize/1MB))"
+echo   node_modules/ size:
+powershell -Command "$nmsize = (Get-ChildItem '%DESKTOP_DIR%node_modules' -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum; Write-Host ('  {0:N1} MB' -f ($nmsize/1MB))"
+
 REM --- Step 10: electron-builder ---
 echo.
 echo [10] Running electron-builder...
