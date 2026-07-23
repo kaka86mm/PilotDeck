@@ -338,16 +338,25 @@ REM sharp, etc.) that must be installed and bundled. Without them the skills
 REM fail with "Cannot find module".
 echo.
 echo [6d] Installing skill runtime node_modules...
-cd /d "%REPO_ROOT%"
-"%RESOURCES%\node-bin\node.exe" "%NPM_CLI%" install --prefix "skills\pptx\runtime" --omit=dev --no-audit --no-fund
+REM IMPORTANT: cd INTO the skill runtime dir before npm install. Using
+REM --prefix from REPO_ROOT causes npm to resolve deps from the root
+REM package.json/workspace (2.4GB of transitive deps). Running from
+REM inside the dir ensures only the skill's deps are installed.
+cd /d "%REPO_ROOT%\skills\pptx\runtime"
+"%RESOURCES%\node-bin\node.exe" "%NPM_CLI%" install --omit=dev --no-audit --no-fund --ignore-scripts
 if errorlevel 1 (
     echo WARNING: pptx skill node_modules install failed
+) else (
+    echo   pptx runtime deps installed
 )
-"%RESOURCES%\node-bin\node.exe" "%NPM_CLI%" install --prefix "skills\spreadsheets\runtime" --omit=dev --no-audit --no-fund
+cd /d "%REPO_ROOT%\skills\spreadsheets\runtime"
+"%RESOURCES%\node-bin\node.exe" "%NPM_CLI%" install --omit=dev --no-audit --no-fund --ignore-scripts
 if errorlevel 1 (
     echo WARNING: spreadsheets skill node_modules install failed
+) else (
+    echo   spreadsheets runtime deps installed
 )
-echo   skill runtime node_modules installed
+echo   skill runtime node_modules done
 
 REM --- Step 7: Create bundle tars (from staging, no symlinks) ---
 echo.
