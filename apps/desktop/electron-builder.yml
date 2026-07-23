@@ -103,8 +103,11 @@ files:
   - "dist/**/*"
   - "onboarding/**/*"
   - "splash/**/*"
+  - "node_modules/yaml/**/*"
+  - "node_modules/.package-lock.json"
   - "package.json"
-# Exclude build-time staging dirs and skill runtime node_modules (they are
-# packed as separate .tar.gz extraResources, not shipped loose in the asar).
+# Exclude everything else (stage, dist-electron, dev deps)
+  - "!stage"
   - "!stage/**/*"
+  - "!dist-electron"
   - "!dist-electron/**/*"
