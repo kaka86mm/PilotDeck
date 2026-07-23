@@ -18,6 +18,7 @@ import {
   dialog,
   ipcMain,
   nativeImage,
+  session,
   shell,
 } from "electron";
 import * as fs from "node:fs";
@@ -594,6 +595,20 @@ if (!gotLock) {
     setupAboutPanel();
     setupAppMenu();
     registerIpcHandlers();
+
+    // ── File download handler ──────────────────────────────────────────
+    // The web UI uses <a download> to trigger file downloads (artifacts,
+    // attachments, exported files). In a real browser this works natively,
+    // but Electron's BrowserWindow silently drops the download unless we
+    // register a 'will-download' handler on the default session.
+    session.defaultSession.on("will-download", (_event, item) => {
+      // Suggest the Downloads folder + original filename as the save path.
+      const defaultPath = path.join(app.getPath("downloads"), item.getFilename());
+      item.setSaveDialogOptions({
+        defaultPath,
+        title: "保存文件",
+      });
+    });
 
     // Check for updates 10s after launch (non-blocking, silent).
     if (!isDev) {
