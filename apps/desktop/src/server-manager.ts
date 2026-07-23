@@ -86,9 +86,17 @@ function buildBundledPath(nodeBin: string, bunBin: string): string {
       // Git Bash: provides bash.exe + coreutils (cp/rm/tar/...) for skill .sh scripts
       const gitUsrBin = path.join(resources, "git-bin", "usr", "bin");
       if (fsSync.existsSync(path.join(gitUsrBin, "bash.exe"))) parts.push(gitUsrBin);
-      // Python embeddable: provides python.exe for docx/pdf skill scripts
+      // Python embeddable: provides python.exe + pip.exe (Scripts/) for skill scripts
       const pythonBin = path.join(resources, "python-bin");
-      if (fsSync.existsSync(path.join(pythonBin, "python.exe"))) parts.push(pythonBin);
+      if (fsSync.existsSync(path.join(pythonBin, "python.exe"))) {
+        parts.push(pythonBin);
+        // pip.exe lives in Scripts/ — add it so 'pip' works directly
+        const pythonScripts = path.join(pythonBin, "Scripts");
+        if (fsSync.existsSync(pythonScripts)) parts.push(pythonScripts);
+      }
+      // GitHub CLI: provides gh.exe for the github skill
+      const ghBin = path.join(resources, "gh-bin");
+      if (fsSync.existsSync(path.join(ghBin, "gh.exe"))) parts.push(ghBin);
       // poppler: provides pdftoppm.exe for PDF page rendering
       const popplerBin = path.join(resources, "poppler-bin", "Library", "bin");
       if (fsSync.existsSync(path.join(popplerBin, "pdftoppm.exe"))) parts.push(popplerBin);

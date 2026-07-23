@@ -87,6 +87,8 @@ extraResources:
     to: python-bin/
   - from: resources/poppler-bin/
     to: poppler-bin/
+  - from: resources/gh-bin/
+    to: gh-bin/
   # Pre-configured acccode template (user copies to ~/.pilotdeck/pilotdeck.yaml
   # and fills in their own key). Ships inside the installer for convenience.
   - from: resources/pilotdeck-team-template.yaml

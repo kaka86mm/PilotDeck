@@ -179,7 +179,7 @@ if errorlevel 1 (
     exit /b 1
 )
 del get-pip.py
-python.exe -m pip install --quiet python-docx "lxml>=5.2,<7" openpyxl python-pptx pypdf pdfplumber reportlab PyMuPDF Pillow
+python.exe -m pip install --quiet python-docx "lxml>=5.2,<7" openpyxl python-pptx pypdf pdfplumber reportlab PyMuPDF Pillow requests
 if errorlevel 1 (
     echo ERROR: office python deps install failed
     exit /b 1
@@ -214,6 +214,25 @@ REM LibreOffice is intentionally NOT bundled (~350MB; msiexec extraction is
 REM fragile in CI). docx/pptx creation and editing work without it; only
 REM rendering to image preview needs it. Users who want rendering install
 REM LibreOffice separately from https://www.libreoffice.org/
+
+REM --- Step 4e: Download GitHub CLI (gh) for Windows ---
+if exist "%RESOURCES%\gh-bin\gh.exe" goto :gh_done
+echo.
+echo [4e] Downloading GitHub CLI for Windows x64...
+mkdir "%RESOURCES%\gh-bin" 2>nul
+cd /d "%RESOURCES%\gh-bin"
+curl -fsSL -o gh.zip https://github.com/cli/cli/releases/download/v2.67.0/gh_2.67.0_windows_amd64.zip
+if errorlevel 1 (
+    echo WARNING: GitHub CLI download failed, github skill may not work
+    goto :gh_skip
+)
+tar xf gh.zip
+move "gh_2.67.0_windows_amd64\bin\gh.exe" gh.exe >nul 2>nul
+rd /s /q "gh_2.67.0_windows_amd64" 2>nul
+del gh.zip
+if exist gh.exe (echo OK: gh downloaded) else (echo WARNING: gh.exe not found)
+:gh_skip
+:gh_done
 
 REM --- Step 5: Build pilotdeckui ---
 if %SKIP_BUILD%==0 (
@@ -312,6 +331,23 @@ if errorlevel 1 (
     echo WARNING: some native modules failed to rebuild, office/terminal features may not work
 )
 echo   native modules rebuilt
+
+REM --- Step 6d: Install skill runtime node_modules (pptx, spreadsheets) ---
+REM These skills have runtime/package.json with JS deps (pptxgenjs, exceljs,
+REM sharp, etc.) that must be installed and bundled. Without them the skills
+REM fail with "Cannot find module".
+echo.
+echo [6d] Installing skill runtime node_modules...
+cd /d "%REPO_ROOT%"
+"%RESOURCES%\node-bin\node.exe" "%NPM_CLI%" install --prefix "skills\pptx\runtime" --omit=dev --no-audit --no-fund
+if errorlevel 1 (
+    echo WARNING: pptx skill node_modules install failed
+)
+"%RESOURCES%\node-bin\node.exe" "%NPM_CLI%" install --prefix "skills\spreadsheets\runtime" --omit=dev --no-audit --no-fund
+if errorlevel 1 (
+    echo WARNING: spreadsheets skill node_modules install failed
+)
+echo   skill runtime node_modules installed
 
 REM --- Step 7: Create bundle tars (from staging, no symlinks) ---
 echo.
