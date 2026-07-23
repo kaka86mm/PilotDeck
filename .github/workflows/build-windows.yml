@@ -60,7 +60,7 @@ jobs:
           Write-Host "Skill dirs in tar: $($skillDirs.Count)"
           $skillDirs | ForEach-Object { Write-Host "  $_" }
           if ($skillDirs.Count -lt 10) {
-            Write-Host "##[error]Only $($skillDirs.Count) skills in bundle tar (expected 20). Windows bsdtar may have dropped skills."
+            Write-Host "##[error]Only $($skillDirs.Count) skills in bundle tar (expected 8). Windows bsdtar may have dropped skills."
             exit 1
           }
           Write-Host "OK: $($skillDirs.Count) skills bundled"
