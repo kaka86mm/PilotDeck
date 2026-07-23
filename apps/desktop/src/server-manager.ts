@@ -6,7 +6,7 @@
  *   - Spawns `node-bin/node pilotdeckui/server/index.js` (instead of entry.js gateway)
  *   - Three tarballs to extract (pilotdeckui/server resolves pilotdeck-memory-core
  *     via `../../../pilotdeck-memory-core/lib/index.js`, so all three must be siblings):
- *       Resources/pilotdeckui-bundle.tar.gz.gz         → Resources/pilotdeckui/
+ *       Resources/pilotdeckui-bundle.tar.gz         → Resources/pilotdeckui/
  *       Resources/pilotdeck-main-bundle.tar.gz     → Resources/pilotdeck-main/
  *       Resources/pilotdeck-memory-core-bundle.tar.gz → Resources/edgeclaw-memory-core/
  *   - Sets BUN_BIN, PILOTDECK_MAIN_DIR so the server can spawn `bun` subprocesses
@@ -581,7 +581,7 @@ export class ServerManager extends EventEmitter<ServerManagerEvents> {
     const pilotDeckUiDir = await this.ensureBundleExtracted(
       resources,
       runtimeBaseDir,
-      "pilotdeckui-bundle.tar.gz.gz",
+      "pilotdeckui-bundle.tar.gz",
       "pilotdeckui",
       "正在解压应用资源 (2/3)",
     );
