@@ -1,31 +1,33 @@
 # ======================================================================
 # PilotDeck 配置文件（团队预置版）
-# 使用前请读本文件顶部的说明，改完 apiKey 那一行即可。
+# 只需改 apiKey 那一行即可使用。
 # ======================================================================
 #
 # 【Windows 同事使用步骤】
 #
-# 1. 安装 PilotDesk 桌面应用
-#    下载: https://github.com/OpenBMB/PilotDeck/releases
+# 1. 下载安装
+#    地址: https://github.com/kaka86mm/PilotDeck/releases/latest
 #    选 PilotDeck-xxxx-win-x64.exe，双击安装。
+#    安装包已内置 Node.js / Python / Git Bash / poppler / GitHub CLI，
+#    无需额外安装任何依赖。
 #
-# 2. 安装 Git for Windows（技能脚本依赖 bash，必须装）
-#    下载: https://git-scm.com/download/win
-#    默认选项安装即可。装完 bash 才能运行 docx/pptx/pdf 等技能。
-#
-# 3. （可选）安装 LibreOffice（让 office 文档能渲染成图片预览）
-#    下载: https://www.libreoffice.org/download/
-#    不装也能创建/编辑文档，只是不能把文档转成图片查看效果。
-#
-# 4. 放置本配置文件 + 填入你的 key
-#    a. 把本文件放到:  C:\Users\你的用户名\.pilotdeck\pilotdeck.yaml
-#       （即 %USERPROFILE%\.pilotdeck\pilotdeck.yaml，文件夹不存在就新建）
-#    b. 用记事本打开本文件，找到下面 apiKey 那一行，
-#       把 <在此填入你的acccode-key> 换成你自己的 key（sk- 开头）。
+# 2. 填入 API Key
+#    a. 安装后首次启动，本文件会自动复制到:
+#       C:\Users\你的用户名\.pilotdeck\pilotdeck.yaml
+#    b. 找到下方 apiKey 那一行，把尖括号内容换成你的 key:
+#       apiKey: <在此填入你的acccode-key>
+#       改成例如:
+#       apiKey: sk-abcdef1234567890...
 #    c. key 到 https://acccode.store 注册获取。
+#    d. 也可以启动后在界面「设置」里直接填 key。
 #
-# 完成后启动 PilotDesk 即可使用，无需其它配置。
-# 模型说明: glm-5.2(主力) / deepseek-v4-flash(轻量) / qwen3.5-397b(复杂)
+# 3. 开始使用
+#    重启 PilotDeck 即可。
+#    内置技能: docx/pptx/pdf/spreadsheets(文档) anysearch(搜索)
+#             github/powershell/diagram-maker/summarize(工具)
+#    网络搜索使用 anysearch 技能，无需额外密钥（匿名模式可用）。
+#
+# 模型说明: deepseek-v4-flash(默认/快速) glm-5.2(复杂任务) qwen3.5-397b(回退)
 # ======================================================================
 
 schemaVersion: 1
