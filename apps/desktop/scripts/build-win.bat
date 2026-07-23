@@ -298,6 +298,21 @@ if errorlevel 1 (
 )
 echo   ui staging node_modules OK
 
+REM --- Step 6c: Rebuild native modules in staging for bundled Node ABI ---
+REM npm install --ignore-scripts skipped native compilation. We must rebuild
+REM better-sqlite3, node-pty, bcrypt (ui) and sharp (root) for the bundled
+REM Node v22.14.0 ABI, otherwise they crash at runtime with no .node binary.
+echo.
+echo [6c] Rebuilding native modules in staging...
+cd /d "%STAGE%\pilotdeck-main"
+"%RESOURCES%\node-bin\node.exe" "%NPM_CLI%" rebuild sharp 2>nul
+cd /d "%STAGE%\pilotdeckui"
+"%RESOURCES%\node-bin\node.exe" "%NPM_CLI%" rebuild better-sqlite3 node-pty bcrypt
+if errorlevel 1 (
+    echo WARNING: some native modules failed to rebuild, office/terminal features may not work
+)
+echo   native modules rebuilt
+
 REM --- Step 7: Create bundle tars (from staging, no symlinks) ---
 echo.
 echo [7] Creating bundle tars...
