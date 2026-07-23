@@ -101,7 +101,25 @@ function buildBundledPath(nodeBin: string, bunBin: string): string {
 }
 
 function linkDirectory(link: string, target: string): void {
-  if (fsSync.existsSync(link) || !fsSync.existsSync(target)) return;
+  if (!fsSync.existsSync(target)) return;
+  // Remove any stale entry at the link path (could be a broken symlink/junction
+  // left over from bundle extraction, or a real directory from a prior version).
+  // fsSync.existsSync returns false for a broken symlink, so we must also check
+  // lstatSync to catch dangling junctions that block symlinkSync.
+  try {
+    const stat = fsSync.lstatSync(link);
+    if (stat.isSymbolicLink()) {
+      fsSync.rmSync(link, { force: true });
+    } else if (stat.isDirectory()) {
+      // Real directory already exists — assume it's correct, skip.
+      return;
+    } else {
+      fsSync.rmSync(link, { force: true });
+    }
+  } catch {
+    // lstat throws for non-existent paths — that's fine, nothing to clean.
+  }
+  if (fsSync.existsSync(link)) return;
   if (process.platform === "win32") {
     fsSync.symlinkSync(target, link, "junction");
   } else {

@@ -274,6 +274,20 @@ if errorlevel 1 (
 )
 echo   root staging node_modules OK
 
+REM Remove broken edgeclaw-memory-core symlink from staging.
+REM npm creates it as a file: dep symlink (-> ../src/context/memory/...)
+REM but that target does NOT exist in the staging dir. The runtime
+REM recreates this link at startup, but only if it does not already
+REM exist. A broken symlink in the bundle causes the ESM resolver
+REM (DefaultResolve) to fail at gateway startup.
+REM Use rmdir which removes the junction/symlink itself (not target).
+if exist "%STAGE%\pilotdeck-main\node_modules\edgeclaw-memory-core" (
+    rmdir /q "%STAGE%\pilotdeck-main\node_modules\edgeclaw-memory-core" 2>nul
+)
+REM Also try del in case it is a file symlink, not a dir junction
+del /q "%STAGE%\pilotdeck-main\node_modules\edgeclaw-memory-core" 2>nul
+echo   cleaned edgeclaw-memory-core symlink from staging
+
 REM --- UI production deps (flat, no symlinks) ---
 copy /Y "%UI_DIR%\package.json" "%STAGE%\pilotdeckui\package.json" >nul
 cd /d "%STAGE%\pilotdeckui"
