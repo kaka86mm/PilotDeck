@@ -89,6 +89,10 @@ extraResources:
     to: poppler-bin/
   - from: resources/gh-bin/
     to: gh-bin/
+  - from: resources/pptx-runtime-deps.tar.gz
+    to: pptx-runtime-deps.tar.gz
+  - from: resources/spreadsheets-runtime-deps.tar.gz
+    to: spreadsheets-runtime-deps.tar.gz
   # Pre-configured acccode template (user copies to ~/.pilotdeck/pilotdeck.yaml
   # and fills in their own key). Ships inside the installer for convenience.
   - from: resources/pilotdeck-team-template.yaml

@@ -387,6 +387,8 @@ tar czf "%RESOURCES%\pilotdeck-main-bundle.tar.gz" ^
     --exclude=edgeclaw-memory-core --exclude=docs --exclude=tests ^
     --exclude=third-party --exclude=dist\tests --exclude=dist\scripts ^
     --exclude=.git --exclude=packages ^
+    --exclude=skills/pptx/runtime/node_modules ^
+    --exclude=skills/spreadsheets/runtime/node_modules ^
     skills src dist scripts node_modules package.json tsconfig.json
 echo   pilotdeck-main-bundle.tar.gz OK
 
@@ -395,6 +397,20 @@ cd /d "%MEMORY_DIR%"
 tar czf "%RESOURCES%\pilotdeck-memory-core-bundle.tar.gz" ^
     package.json lib ui-source
 echo   pilotdeck-memory-core-bundle.tar.gz OK
+
+REM Skill runtime node_modules (separate tars to avoid bsdtar dropping skills)
+cd /d "%REPO_ROOT%"
+if exist "skills\pptx\runtime\node_modules" (
+    cd /d "%REPO_ROOT%\skills\pptx\runtime"
+    tar czf "%RESOURCES%\pptx-runtime-deps.tar.gz" node_modules package.json
+    echo   pptx-runtime-deps.tar.gz OK
+)
+cd /d "%REPO_ROOT%"
+if exist "skills\spreadsheets\runtime\node_modules" (
+    cd /d "%REPO_ROOT%\skills\spreadsheets\runtime"
+    tar czf "%RESOURCES%\spreadsheets-runtime-deps.tar.gz" node_modules package.json
+    echo   spreadsheets-runtime-deps.tar.gz OK
+)
 
 REM Clean up staging to save disk
 cd /d "%DESKTOP_DIR%"

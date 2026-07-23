@@ -627,6 +627,38 @@ export class ServerManager extends EventEmitter<ServerManagerEvents> {
       getPilotDeckDir(),
     );
 
+    // Extract skill runtime node_modules (pptx, spreadsheets) from separate
+    // tars. These are excluded from pilotdeck-main-bundle.tar.gz because the
+    // huge nested node_modules caused Windows bsdtar to drop subsequent skill
+    // directories. Each tar contains node_modules/ + package.json, extracted
+    // into the corresponding skill's runtime/ dir.
+    for (const [tarName, skillSlug] of [
+      ["pptx-runtime-deps.tar.gz", "pptx"],
+      ["spreadsheets-runtime-deps.tar.gz", "spreadsheets"],
+    ] as const) {
+      const depTar = path.join(resources, tarName);
+      const skillRuntime = path.join(
+        pilotDeckMainDir,
+        "skills",
+        skillSlug,
+        "runtime",
+      );
+      const depMarker = path.join(skillRuntime, ".deps-extracted");
+      if (fsSync.existsSync(depTar) && !fsSync.existsSync(depMarker)) {
+        try {
+          fsSync.mkdirSync(skillRuntime, { recursive: true });
+          await execFile(
+            process.platform === "win32" ? "tar" : "/usr/bin/tar",
+            ["xf", depTar, "-C", skillRuntime],
+            { timeout: 120_000, maxBuffer: 1024 * 1024 },
+          );
+          fsSync.writeFileSync(depMarker, "1");
+        } catch (e) {
+          console.warn(`[pilotdeck] Failed to extract ${tarName}:`, e);
+        }
+      }
+    }
+
     // ui/server/ files import compiled JS via relative paths like
     // `../../dist/src/pilot/index.js`. From pilotdeckui/server/ that
     // resolves to <runtimeBaseDir>/dist/src/..., but the actual dist/
