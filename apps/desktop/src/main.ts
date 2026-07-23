@@ -423,6 +423,9 @@ function createMainWindow(
     title: "PilotDeck",
     show: false,
     titleBarStyle: "default",
+    // Hide the menu bar on Windows/Linux (press Alt to toggle). macOS keeps
+    // the native menu bar via setApplicationMenu below.
+    autoHideMenuBar: process.platform !== "darwin",
     ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -435,7 +438,9 @@ function createMainWindow(
   void win.loadURL(`http://127.0.0.1:${port}/`);
 
   win.on("close", (e) => {
-    if (!isQuitting) {
+    // On macOS, closing the window hides to the dock (standard behavior).
+    // On Windows/Linux, the user expects the X button to truly quit the app.
+    if (process.platform === "darwin" && !isQuitting) {
       e.preventDefault();
       win.hide();
     }
